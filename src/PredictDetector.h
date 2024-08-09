@@ -69,8 +69,8 @@ public:
             throw std::runtime_error("Session model is not initialized.");
         }
         // TODO: Implement the prediction logic for the detector
-        int h = src_img.rows;
-        int w = src_img.cols;
+        src_height = src_img.rows;
+        src_width = src_img.cols;
         dstimg = this->Preprocess(src_img);
         // TODO: Call the inference function of the predictor
         this->Normalize(dstimg);
@@ -112,15 +112,28 @@ public:
     }
 
 
-    void Postprocess(const std::vector<Ort::Value>& outputs) {
-        const float* floatArray = ort_outputs[0].GetTensorMutableData<float>();
+    void Postprocess(std::vector<Ort::Value>& outputs) {
+        const float* floatArray = outputs[0].GetTensorMutableData<float>();
         int outputCount = 1;
-        for(int i=0; i < ort_outputs.at(0).GetTensorTypeAndShapeInfo().GetShape().size(); i++)
+        for(int i=0; i < outputs.at(0).GetTensorTypeAndShapeInfo().GetShape().size(); i++)
         {
-            int dim = ort_outputs.at(0).GetTensorTypeAndShapeInfo().GetShape().at(i);
+            int dim = outputs.at(0).GetTensorTypeAndShapeInfo().GetShape().at(i);
             outputCount *= dim;
         }
         cv::Mat binary(dstimg.rows, dstimg.cols, CV_32FC1);
+        cv:imwrite("binary.png", binary);
+        	memcpy(binary.data, floatArray, outputCount * sizeof(float));
+
+        // Threshold
+        cv::Mat bitmap;
+        threshold(binary, bitmap, db_thres, 255, cv::THRESH_BINARY);
+        // Scale ratio
+        float scaleHeight = (float)(src_height) / (float)(binary.size[0]);
+        float scaleWidth = (float)(src_width) / (float)(binary.size[1]);
+        // Find contours
+       // vector< vector<Point> > contours;
+        bitmap.convertTo(bitmap, CV_8UC1);
+        cv::imwrite("bitmap.png", bitmap);
         
     }
 
@@ -188,6 +201,9 @@ private:
     float box_thres;
     int max_candidates;
     float unclip_ratio;
+
+    int src_height;
+    int src_width;
 
     Ort::AllocatorWithDefaultOptions allocator;
     std::unique_ptr<Ort::Session> session_model;

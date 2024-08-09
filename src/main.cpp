@@ -8,7 +8,7 @@
 
 
 int main() {
-    PredictDetector predict_det("../models/en_det_model.onnx", "auto");
+    PredictDetector predict_det("../models/det.onnx", "auto");
     std::unique_ptr<Ort::Session>& session = predict_det.GetSessionModel();
     // Your prediction code here
     
@@ -67,6 +67,7 @@ int main() {
         std::cout << std::endl;
     }
 
+    predict_det.Postprocess(ort_outputs);
     cv::imshow("src", src);
     cv::waitKey(0);
 
