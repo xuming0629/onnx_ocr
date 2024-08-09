@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5.0)
-project(onnx_ocr VERSION 0.1.0 LANGUAGES C CXX)
+project(inspurocr VERSION 0.1.0 LANGUAGES C CXX)
 
 
 # Detect platform type
@@ -34,7 +34,8 @@ add_executable(inspurocr
     src/main.cpp 
     src/PredictBase.h 
     src/PredictDetector.h
-    src/PredictRecongize.h)
+    )
+   # src/PredictRecongize.h)
 
 # 链接 ONNX Runtime 和 OpenCV 库
 target_link_libraries(inspurocr onnxruntime ${OpenCV_LIBS})

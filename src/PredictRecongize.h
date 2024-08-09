@@ -16,20 +16,7 @@ public:
         return session_model;
     }
 
-    std::vector<std::string> GetInputNames() {
-        if (!session_model) {
-            throw std::runtime_error("Session model is not initialized.");
-        }
-
-        std::vector<std::string> input_names;
-        size_t numInputNodes = session_model->GetInputCount();
-        for (size_t i = 0; i < numInputNodes; ++i) {
-            char* inputName = session_model->GetInputNameAllocated(i, allocator).release();
-            input_names.emplace_back(inputName);
-            allocator.Free(inputName);
-        }
-        return input_names;
-    }
+    
 
 private:
     Ort::AllocatorWithDefaultOptions allocator;

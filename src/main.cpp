@@ -11,17 +11,18 @@ int main() {
     PredictDetector predict_det("../models/en_det_model.onnx", "auto");
     std::unique_ptr<Ort::Session>& session = predict_det.GetSessionModel();
     // Your prediction code here
+    
+    auto inputNodeNames = predict_det.GetInputNames();
 
-    auto inputNodesNum = session->GetInputCount();
-    Ort::AllocatorWithDefaultOptions allocator;
-	auto temp_input_name0 = session->GetInputNameAllocated(0, allocator);
-	
-    std::vector<const char*> inputNodeNames; //
-	std::vector<const char*> outputNodeNames;//
-	std::vector<int64_t> inputTensorShape; //
-    inputNodeNames.push_back(temp_input_name0.get());
     std::cout << "Input names:" << std::endl;
     for (const auto& name : inputNodeNames) {
+        std::cout << name << std::endl;
+    }
+
+
+    auto outputNodeNames = predict_det.GetOutputNames();
+    std::cout << "Output names:" << std::endl;
+    for (const auto& name : outputNodeNames) {
         std::cout << name << std::endl;
     }
     return 0;

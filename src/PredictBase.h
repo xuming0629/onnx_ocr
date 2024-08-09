@@ -22,8 +22,8 @@ public:
     virtual std::unique_ptr<Ort::Session>& GetSessionModel() = 0;
     virtual std::vector<std::string> GetInputNames() = 0;
     virtual std::vector<std::string> GetOutputNames() = 0;
-    virtual std::vector<int64_t> GetInputDimensions(const std::string& input_name) = 0;
-    virtual std::vector<int64_t> GetOutputDimensions(const std::string& output_name) = 0;
+    // virtual std::vector<int64_t> GetInputDimensions(const std::string& input_name) = 0;
+    //virtual std::vector<int64_t> GetOutputDimensions(const std::string& output_name) = 0;
 
 protected:
     std::string onnx_model;
@@ -31,7 +31,8 @@ protected:
     Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "ONNXRuntime"};
     Ort::SessionOptions session_options;
     std::vector<const char*> providers;
-    Ort::AllocatorWithDefaultOptions allocator;
+   
+
     std::unique_ptr<Ort::Session> session_model;
 
     std::vector<const char*> SelectDevice(const std::string& device) {
