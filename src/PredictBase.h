@@ -16,24 +16,22 @@ public:
         providers = SelectDevice(device);
     }
 
-    virtual ~PredictBase() {}
+    virtual ~PredictBase() {
+        std::cout << "Destroying model..." << std::endl;    
+    }
 
-    // 纯虚函数，子类必须实现
+    // Pure virtual functions to be implemented by derived classes
     virtual std::unique_ptr<Ort::Session>& GetSessionModel() = 0;
     virtual std::vector<std::string> GetInputNames() = 0;
     virtual std::vector<std::string> GetOutputNames() = 0;
-    // virtual std::vector<int64_t> GetInputDimensions(const std::string& input_name) = 0;
-    //virtual std::vector<int64_t> GetOutputDimensions(const std::string& output_name) = 0;
 
 protected:
+    std::unique_ptr<Ort::Session> session_model;
     std::string onnx_model;
     std::string device;
-    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "ONNXRuntime"};
+    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "DBNet"};
     Ort::SessionOptions session_options;
     std::vector<const char*> providers;
-   
-
-    std::unique_ptr<Ort::Session> session_model;
 
     std::vector<const char*> SelectDevice(const std::string& device) {
         if (device == "cuda" || (device == "auto" && IsCudaAvailable())) {
@@ -47,7 +45,7 @@ protected:
     Ort::SessionOptions GetSessionOptions() {
         Ort::SessionOptions sess_options;
         sess_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-        sess_options.SetIntraOpNumThreads(4);
+        sess_options.SetIntraOpNumThreads(4);  // Configure this based on the system or application needs
         return sess_options;
     }
 
@@ -55,7 +53,6 @@ protected:
         std::vector<std::string> available_providers = Ort::GetAvailableProviders();
         return std::find(available_providers.begin(), available_providers.end(), "CUDAExecutionProvider") != available_providers.end();
     }
-
 };
 
 #endif // PREDICTBASE_H
