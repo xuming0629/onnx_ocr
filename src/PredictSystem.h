@@ -57,7 +57,7 @@ public:
             }
             // 识别文本
             std::string text = recognizer_->Predict(textimg);
-            std::cout << "Recognized text: " << text << std::endl;
+            // std::cout << "Recognized text: " << text << std::endl;
 
             // 构建单个结果的 JSON 对象
             json result_json;

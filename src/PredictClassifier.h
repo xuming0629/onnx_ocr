@@ -18,7 +18,7 @@ public:
     std::unique_ptr<Ort::Session>& GetSessionModel() override {
         if (!session_model_) {
             session_model_ = std::make_unique<Ort::Session>(env, onnx_model.c_str(), session_options);
-            std::cout << "Model loaded successfully on " << device << std::endl;
+            std::cout << "Model loaded classifer model successfully on " << device << std::endl;
         }
         return session_model_;
     }
@@ -91,9 +91,6 @@ public:
         // 将缩放后的图像放在中心
         dstimg.copyTo(output_img(cv::Rect((target_width - resized_w) / 2, (target_height - resized_h) / 2, resized_w, resized_h)));
 
-        std::cout << "resized_w: " << resized_w << ", resized_h: " << resized_h << std::endl;
-        std::cout << "Output image size: " << output_img.size() << std::endl;
-
         return output_img;
     }
 
@@ -140,7 +137,7 @@ public:
         }
 
         std::vector<Ort::Value> ort_outputs = session_model_->Run(Ort::RunOptions{nullptr}, input_names_cstr.data(), &input_tensor_, 1, output_names_cstr.data(), output_names_cstr.size());
-        std::cout << "Output size: " << ort_outputs.size() << std::endl;
+        // std::cout << "Output size: " << ort_outputs.size() << std::endl;
 
         int tagIdx = Postprocess(ort_outputs);
         int angle = label_list[tagIdx];

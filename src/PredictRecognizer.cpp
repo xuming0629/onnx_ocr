@@ -10,7 +10,7 @@ PredictRecognizer::PredictRecognizer(const std::string& model_path, const std::s
 std::unique_ptr<Ort::Session>& PredictRecognizer::GetSessionModel() {
     if (!session_model_) {
         session_model_ = std::make_unique<Ort::Session>(env, onnx_model.c_str(), session_options);
-        std::cout << "Model loaded recognize model successfully on " << device << std::endl;
+        std::cout << "Model loaded recognizer model successfully on " << device << std::endl;
     }
     return session_model_;
 }
@@ -83,9 +83,6 @@ cv::Mat PredictRecognizer::Preprocess(const cv::Mat& image) {
     // 将缩放后的图像放在中心
     dstimg.copyTo(output_img(cv::Rect((target_width - resized_w) / 2, (target_height - resized_h) / 2, resized_w, resized_h)));
 
-    std::cout << "resized_w: " << resized_w << ", resized_h: " << resized_h << std::endl;
-    std::cout << "Output image size: " << output_img.size() << std::endl;
-
     return output_img;
 }
 
@@ -117,7 +114,6 @@ std::string PredictRecognizer::Predict(const cv::Mat& image) {
     }
 
     cv::Mat preprocessed_image = Preprocess(image);
-    std::cout << preprocessed_image.size() << std::endl;
     Normalize(preprocessed_image);
 
     if (input_image_.size() != 3 * this->height_ * this->width_) {
@@ -143,13 +139,14 @@ std::string PredictRecognizer::Predict(const cv::Mat& image) {
 
     std::vector<Ort::Value> ort_outputs = session_model_->Run(Ort::RunOptions{nullptr}, input_names_cstr.data(), &input_tensor_, 1, output_names_cstr.data(), output_names_cstr.size());
 
-    std::cout << "Output size: " << ort_outputs.size() << std::endl;
+    // std::cout << "Output size: " << ort_outputs.size() << std::endl;
     
     return Postprocess(ort_outputs);
 }
 
 std::string PredictRecognizer::Postprocess(std::vector<Ort::Value>& outputs) {
-    std::cout << "start rec Postprocess" << std::endl;
+   
+    // std::cout << "start rec Postprocess" << std::endl;
     const float* pdata = outputs[0].GetTensorMutableData<float>();
     int h = outputs.at(0).GetTensorTypeAndShapeInfo().GetShape().at(2);
     int w = outputs.at(0).GetTensorTypeAndShapeInfo().GetShape().at(1);
