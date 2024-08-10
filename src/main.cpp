@@ -1,7 +1,5 @@
 #include <iostream>
-
 #include "PredictSystem.h"
-#include "json.hpp"
 
 int main()
 {

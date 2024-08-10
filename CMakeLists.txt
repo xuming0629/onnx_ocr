@@ -29,16 +29,38 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 ## 包含 src 目录中的头文件
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
+# # 添加可执行文件
+# add_executable(inspurocr 
+#     # src/det_main.cpp 
+#     # src/cls_main.cpp
+#     # src/rec_main.cpp
+#     src/main.cpp
+#     src/PredictClassifier.cpp
+#     src/PredictClassifier.h
+#     src/ExportSystem.h
+#     src/ExportSystem.cpp
+#     # src/PredictSystem.h
+#     # src/PredictSystem.cpp
+#     src/PredictBase.h 
+#     src/PredictBase.cpp
+#     src/PredictDetector.h
+#     src/PredictDetector.cpp
+#     src/PredictRecognizer.h
+#     src/PredictRecognizer.cpp
+#     src/json.hpp
+#     )
 # 添加可执行文件
-add_executable(inspurocr 
+add_library(inspurocr  SHARED
     # src/det_main.cpp 
     # src/cls_main.cpp
     # src/rec_main.cpp
-    src/main.cpp
+    # src/main.cpp
     src/PredictClassifier.cpp
     src/PredictClassifier.h
-    src/PredictSystem.h
-    src/PredictSystem.cpp
+    src/ExportSystem.h
+    src/ExportSystem.cpp
+    # src/PredictSystem.h
+    # src/PredictSystem.cpp
     src/PredictBase.h 
     src/PredictBase.cpp
     src/PredictDetector.h
@@ -47,7 +69,6 @@ add_executable(inspurocr
     src/PredictRecognizer.cpp
     src/json.hpp
     )
-
 
 # 链接 ONNX Runtime 和 OpenCV 库
 target_link_libraries(inspurocr onnxruntime ${OpenCV_LIBS})
