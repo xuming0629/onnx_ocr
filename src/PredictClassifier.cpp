@@ -1,18 +1,16 @@
-#include "PredictRecognizer.h"
+#include "PredictClassifier.h"
 
 /**
- * @brief Construct a new PredictRecognizer object.
+ * @brief Construct a new PredictClassifier object.
  * 
- * Initializes the model, loads the character dictionary, and sets up the session.
+ * Initializes the model and prepares the ONNX session.
  * 
  * @param model_path Path to the ONNX model file.
  * @param device Target device for model inference ("cpu", "cuda", "auto").
- * @param rec_char_dic Path to the character dictionary file.
  */
-PredictRecognizer::PredictRecognizer(const std::string& model_path, const std::string& device, const std::string& rec_char_dic)
-    : PredictBase(model_path, device), width_(320), height_(48) {
+PredictClassifier::PredictClassifier(const std::string& model_path, const std::string& device) 
+    : PredictBase(model_path, device) {
     session_model_ = std::move(GetSessionModel());
-    LoadAlphabet(rec_char_dic);
 }
 
 /**
@@ -20,33 +18,12 @@ PredictRecognizer::PredictRecognizer(const std::string& model_path, const std::s
  * 
  * @return std::unique_ptr<Ort::Session>& Reference to the unique pointer of the session model.
  */
-std::unique_ptr<Ort::Session>& PredictRecognizer::GetSessionModel() {
+std::unique_ptr<Ort::Session>& PredictClassifier::GetSessionModel() {
     if (!session_model_) {
         session_model_ = std::make_unique<Ort::Session>(env, onnx_model.c_str(), session_options);
-        std::cout << "Model loaded recognizer model successfully on " << device << std::endl;
+        std::cout << "Model loaded classifier model successfully on " << device << std::endl;
     }
     return session_model_;
-}
-
-/**
- * @brief Load the character dictionary for text recognition.
- * 
- * @param filename Path to the character dictionary file.
- */
-void PredictRecognizer::LoadAlphabet(const std::string& filename) {
-    std::ifstream ifs(filename);
-    if (!ifs.is_open()) {
-        throw std::runtime_error("Could not open file: " + filename);
-    }
-    std::string line;
-    alphabet_.clear();
-
-    while (std::getline(ifs, line)) {
-        alphabet_.push_back(line);
-    }
-
-    alphabet_.push_back(" ");
-    names_len = alphabet_.size();
 }
 
 /**
@@ -54,7 +31,7 @@ void PredictRecognizer::LoadAlphabet(const std::string& filename) {
  * 
  * @return std::vector<std::string> List of input node names.
  */
-std::vector<std::string> PredictRecognizer::GetInputNames() {
+std::vector<std::string> PredictClassifier::GetInputNames() {
     if (!session_model_) {
         throw std::runtime_error("Session model is not initialized.");
     }
@@ -73,7 +50,7 @@ std::vector<std::string> PredictRecognizer::GetInputNames() {
  * 
  * @return std::vector<std::string> List of output node names.
  */
-std::vector<std::string> PredictRecognizer::GetOutputNames() {
+std::vector<std::string> PredictClassifier::GetOutputNames() {
     if (!session_model_) {
         throw std::runtime_error("Session model is not initialized.");
     }
@@ -88,12 +65,33 @@ std::vector<std::string> PredictRecognizer::GetOutputNames() {
 }
 
 /**
+ * @brief Get the output shapes of the ONNX model.
+ * 
+ * @return std::vector<std::vector<int64_t>> List of output shapes.
+ */
+std::vector<std::vector<int64_t>> PredictClassifier::GetOutputShapes() {
+    if (!session_model_) {
+        throw std::runtime_error("Session model is not initialized.");
+    }
+
+    std::vector<std::vector<int64_t>> output_shapes;
+    size_t num_output_nodes = session_model_->GetOutputCount();
+    for (size_t i = 0; i < num_output_nodes; ++i) {
+        Ort::TypeInfo output_type_info = session_model_->GetOutputTypeInfo(i);
+        auto output_tensor_info = output_type_info.GetTensorTypeAndShapeInfo();
+        auto output_dims = output_tensor_info.GetShape();
+        output_shapes.push_back(output_dims);
+    }
+    return output_shapes;
+}
+
+/**
  * @brief Preprocess the input image (resize, normalization, etc.).
  * 
  * @param image The input image to preprocess.
  * @return cv::Mat The preprocessed image.
  */
-cv::Mat PredictRecognizer::Preprocess(const cv::Mat& image) {
+cv::Mat PredictClassifier::Preprocess(const cv::Mat& image) {
     cv::Mat dstimg;
     int target_width = 320;  // 目标宽度
     int target_height = 48;  // 目标高度
@@ -124,22 +122,18 @@ cv::Mat PredictRecognizer::Preprocess(const cv::Mat& image) {
  * 
  * @param img The preprocessed image to normalize.
  */
-void PredictRecognizer::Normalize(cv::Mat& img) {
+void PredictClassifier::Normalize(cv::Mat& img) {
     int row = img.rows;
     int col = img.cols;
-    int channels = img.channels();
-    int width_ = col;
-
-    input_image_.resize(row * width_ * channels);
-
-    for (int c = 0; c < channels; c++) {
+    this->input_image_.resize(this->height_ * this->width_ * img.channels());
+    for (int c = 0; c < 3; c++) {
         for (int i = 0; i < row; i++) {
             for (int j = 0; j < width_; j++) {
                 if (j < col) {
-                    float pix = img.ptr<uchar>(i)[j * channels + c];
-                    input_image_[c * row * width_ + i * width_ + j] = (pix / 255.0f - 0.5f) / 0.5f;
+                    float pix = img.ptr<uchar>(i)[j * 3 + c];
+                    this->input_image_[c * row * width_ + i * width_ + j] = (pix / 255.0 - 0.5) / 0.5;
                 } else {
-                    input_image_[c * row * width_ + i * width_ + j] = 0.0f;
+                    this->input_image_[c * row * width_ + i * width_ + j] = 0;
                 }
             }
         }
@@ -147,23 +141,18 @@ void PredictRecognizer::Normalize(cv::Mat& img) {
 }
 
 /**
- * @brief Run the prediction on the input image to recognize text.
+ * @brief Run the prediction on the input image to classify it.
  * 
- * @param image Input image for text recognition.
- * @return std::string Recognized text.
+ * @param img Input image for classification.
+ * @return int Predicted class label.
  */
-std::string PredictRecognizer::Predict(const cv::Mat& image) {
-    if (!session_model_) {
-        throw std::runtime_error("Session model is not initialized.");
-    }
-
-    cv::Mat preprocessed_image = Preprocess(image);
-    Normalize(preprocessed_image);
-
+int PredictClassifier::Predict(cv::Mat& img) {
+    cv::Mat dst_img = Preprocess(img);
+    Normalize(dst_img);
     if (input_image_.size() != 3 * this->height_ * this->width_) {
         throw std::runtime_error("Input image size does not match expected size.");
     }
-
+    
     std::array<int64_t, 4> input_shape_{1, 3, this->height_, this->width_};
     auto allocator_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
     Ort::Value input_tensor_ = Ort::Value::CreateTensor<float>(allocator_info, input_image_.data(), input_image_.size(), input_shape_.data(), input_shape_.size());
@@ -183,45 +172,27 @@ std::string PredictRecognizer::Predict(const cv::Mat& image) {
 
     std::vector<Ort::Value> ort_outputs = session_model_->Run(Ort::RunOptions{nullptr}, input_names_cstr.data(), &input_tensor_, 1, output_names_cstr.data(), output_names_cstr.size());
 
-    return Postprocess(ort_outputs);
+    int tagIdx = Postprocess(ort_outputs);
+    int angle = label_list[tagIdx];
+    return angle;
 }
 
 /**
- * @brief Postprocess the output of the model to extract recognized text.
+ * @brief Postprocess the output of the model to determine the predicted class.
  * 
  * @param outputs The raw outputs from the ONNX model.
- * @return std::string Recognized text.
+ * @return int Predicted class label index.
  */
-std::string PredictRecognizer::Postprocess(std::vector<Ort::Value>& outputs) {
+int PredictClassifier::Postprocess(std::vector<Ort::Value>& outputs) {
     const float* pdata = outputs[0].GetTensorMutableData<float>();
-    int h = outputs.at(0).GetTensorTypeAndShapeInfo().GetShape().at(2);
-    int w = outputs.at(0).GetTensorTypeAndShapeInfo().GetShape().at(1);
-    preb_label_.resize(w);
-
-    for (int i = 0; i < w; i++) {
-        int one_label_idx = 0;
-        float max_data = -10000;
-        for (int j = 0; j < h; j++) {
-            float data_ = pdata[i * h + j];
-            if (data_ > max_data) {
-                max_data = data_;
-                one_label_idx = j;
-            }
-        }
-        preb_label_[i] = one_label_idx;
+    auto num_out = outputs[0].GetTensorTypeAndShapeInfo().GetElementCount();
+    int max_id = 0;
+    float max_prob = -1;
+    for (int i = 0; i < num_out; i++) {
+        if (pdata[i] > max_prob) {
+            max_prob = pdata[i];
+            max_id = i;
+        }   
     }
-
-    std::vector<int> no_repeat_blank_label;
-    for (size_t elementIndex = 0; elementIndex < w; ++elementIndex) {
-        if (preb_label_[elementIndex] != 0 && !(elementIndex > 0 && preb_label_[elementIndex - 1] == preb_label_[elementIndex])) {
-            no_repeat_blank_label.push_back(preb_label_[elementIndex] - 1);
-        }
-    }
-
-    std::string plate_text;
-    for (int i = 0; i < static_cast<int>(no_repeat_blank_label.size()); i++) {
-        plate_text += alphabet_[no_repeat_blank_label[i]];
-    }
-
-    return plate_text;
+    return max_id;
 }

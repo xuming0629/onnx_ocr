@@ -35,8 +35,11 @@ add_executable(inspurocr
     # src/cls_main.cpp
     # src/rec_main.cpp
     src/main.cpp
+    src/PredictClassifier.cpp
+    src/PredictClassifier.h
     src/PredictSystem.h
     src/PredictBase.h 
+    src/PredictBase.cpp
     src/PredictDetector.h
     src/PredictDetector.cpp
     src/PredictRecognizer.h

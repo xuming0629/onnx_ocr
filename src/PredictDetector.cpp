@@ -1,5 +1,93 @@
 #include "PredictDetector.h"
 
+/**
+ * @brief Construct a new PredictDetector object.
+ * 
+ * Initializes the model with specified parameters and prepares the ONNX session.
+ * 
+ * @param model_path Path to the ONNX model file.
+ * @param device Target device for model inference ("cpu", "cuda", "auto").
+ * @param db_thresh Threshold for binary segmentation.
+ * @param box_thresh Threshold for text box filtering.
+ * @param max_candidates Maximum number of candidates to consider.
+ * @param unclip_ratio Ratio for unclipping the detected text box.
+ */
+PredictDetector::PredictDetector(const std::string& model_path, 
+                                 const std::string& device,
+                                 float db_thresh,
+                                 float box_thresh,
+                                 int max_candidates,
+                                 float unclip_ratio)
+    : PredictBase(model_path, device),  // 调用基类构造函数
+      db_thresh_(db_thresh),
+      box_thresh_(box_thresh),
+      max_candidates_(max_candidates),
+      unclip_ratio_(unclip_ratio),
+      src_height_(0),
+      src_width_(0),
+      short_size_(640)  // 默认短边大小
+{
+    // 在构造函数主体中初始化 session_model_
+    session_model_ = std::move(GetSessionModel());
+}
+
+/**
+ * @brief Get the ONNX session model, loading it if necessary.
+ * 
+ * @return std::unique_ptr<Ort::Session>& Reference to the unique pointer of the session model.
+ */
+std::unique_ptr<Ort::Session>& PredictDetector::GetSessionModel() {
+    if (!session_model_) {
+        session_model_ = std::make_unique<Ort::Session>(env, onnx_model.c_str(), session_options);
+        std::cout << "Model loaded detector model successfully on " << device << std::endl;
+    }
+    return session_model_;
+}
+
+/**
+ * @brief Get the input node names of the ONNX model.
+ * 
+ * @return std::vector<std::string> List of input node names.
+ */
+std::vector<std::string> PredictDetector::GetInputNames() {
+    if (!session_model_) {
+        throw std::runtime_error("Session model is not initialized.");
+    }
+
+    std::vector<std::string> input_names;
+    size_t num_input_nodes = session_model_->GetInputCount();
+    for (size_t i = 0; i < num_input_nodes; ++i) {
+        auto input_name = session_model_->GetInputNameAllocated(i, allocator_);
+        input_names.push_back(input_name.get());
+    }
+    return input_names;
+}
+
+/**
+ * @brief Get the output node names of the ONNX model.
+ * 
+ * @return std::vector<std::string> List of output node names.
+ */
+std::vector<std::string> PredictDetector::GetOutputNames() {
+    if (!session_model_) {
+        throw std::runtime_error("Session model is not initialized.");
+    }
+
+    std::vector<std::string> output_names;
+    size_t num_output_nodes = session_model_->GetOutputCount();
+    for (size_t i = 0; i < num_output_nodes; ++i) {
+        auto output_name = session_model_->GetOutputNameAllocated(i, allocator_);
+        output_names.push_back(output_name.get());
+    }
+    return output_names;
+}
+
+/**
+ * @brief Run the prediction on the input image and detect text regions.
+ * 
+ * @param src_img Input image for text detection.
+ * @return std::vector<std::vector<cv::Point2f>> Detected text regions as vectors of points.
+ */
 std::vector<std::vector<cv::Point2f>> PredictDetector::Predict(cv::Mat& src_img) {
     if (!session_model_) {
         throw std::runtime_error("Session model is not initialized.");
@@ -44,6 +132,12 @@ std::vector<std::vector<cv::Point2f>> PredictDetector::Predict(cv::Mat& src_img)
     return results;
 }
 
+/**
+ * @brief Postprocess the output of the model to extract text regions.
+ * 
+ * @param outputs The raw outputs from the ONNX model.
+ * @return std::vector<std::vector<cv::Point2f>> The postprocessed text regions.
+ */
 std::vector<std::vector<cv::Point2f>> PredictDetector::Postprocess(std::vector<Ort::Value>& outputs) {
     if (outputs.empty()) {
         throw std::runtime_error("Output from the model is empty.");
@@ -120,6 +214,13 @@ std::vector<std::vector<cv::Point2f>> PredictDetector::Postprocess(std::vector<O
 
     return results;
 }
+
+/**
+ * @brief Unclip the detected text region to expand its bounding box.
+ * 
+ * @param inPoly The original detected polygon.
+ * @param outPoly The unclipped polygon (output).
+ */
 void PredictDetector::unclip(const std::vector<cv::Point2f>& inPoly, std::vector<cv::Point2f>& outPoly) {
     // Calculate the area and perimeter of the polygon
     float area = cv::contourArea(inPoly);
@@ -184,7 +285,13 @@ void PredictDetector::unclip(const std::vector<cv::Point2f>& inPoly, std::vector
     }
 }
 
-
+/**
+ * @brief Crop and rotate the detected text region from the image.
+ * 
+ * @param frame The original image from which to crop.
+ * @param vertices The vertices of the text region to crop.
+ * @return cv::Mat The cropped and rotated text region.
+ */
 cv::Mat PredictDetector::get_rotate_crop_image(const cv::Mat& frame, const std::vector<cv::Point2f>& vertices) {
     // Calculate the bounding rectangle for the provided vertices
     cv::Rect rect = cv::boundingRect(vertices);
@@ -222,8 +329,13 @@ cv::Mat PredictDetector::get_rotate_crop_image(const cv::Mat& frame, const std::
     return result;
 }
 
-
-
+/**
+ * @brief Calculate the contour score of a detected region.
+ * 
+ * @param binary The binary image output from the model.
+ * @param contour The contour of the detected region.
+ * @return float The score of the contour.
+ */
 float PredictDetector::contourScore(const cv::Mat& binary, const std::vector<cv::Point>& contour) {
     cv::Rect rect = cv::boundingRect(contour);
     int xmin = std::max(rect.x, 0);
@@ -244,6 +356,12 @@ float PredictDetector::contourScore(const cv::Mat& binary, const std::vector<cv:
     return score;
 }
 
+/**
+ * @brief Preprocess the input image (resize, normalization, etc.).
+ * 
+ * @param input_image The input image to preprocess.
+ * @return cv::Mat The preprocessed image.
+ */
 cv::Mat PredictDetector::Preprocess(const cv::Mat& input_image) {
     if (input_image.empty()) {
         throw std::runtime_error("Input image is empty.");
@@ -279,6 +397,11 @@ cv::Mat PredictDetector::Preprocess(const cv::Mat& input_image) {
     return resized_image;
 }
 
+/**
+ * @brief Normalize the preprocessed image for inference.
+ * 
+ * @param img The preprocessed image to normalize.
+ */
 void PredictDetector::Normalize(cv::Mat& img) {
     int rows = img.rows;
     int cols = img.cols;
