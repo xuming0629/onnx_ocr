@@ -31,12 +31,14 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 
 # 添加可执行文件
 add_executable(inspurocr 
-    src/main.cpp 
+    # src/det_main.cpp 
+    src/rec_main.cpp
     src/PredictBase.h 
     src/PredictDetector.h
     src/PredictDetector.cpp
+    src/PredictRecongize.h
     )
-   # src/PredictRecongize.h)
+
 
 # 链接 ONNX Runtime 和 OpenCV 库
 target_link_libraries(inspurocr onnxruntime ${OpenCV_LIBS})

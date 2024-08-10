@@ -29,7 +29,7 @@ protected:
     std::unique_ptr<Ort::Session> session_model;
     std::string onnx_model;
     std::string device;
-    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "DBNet"};
+    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "ONNXRuntime"};
     Ort::SessionOptions session_options;
     std::vector<const char*> providers;
 
