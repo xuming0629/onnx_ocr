@@ -6,7 +6,7 @@
 int main() {
     try {
         // Initialize the PredictDetector object with the model path and device
-        PredictRecognizer predict_rec("../models/rec/rec.onnx", "auto");
+        PredictRecognizer predict_rec("../models/rec/rec.onnx", "auto", "../models/ppocr_keys_v1.txt");
         std::cout << "PredictRecongize initialized." << std::endl;
 
         // Ensure the ONNX Runtime session is initialized
@@ -22,10 +22,11 @@ int main() {
         std::cout << "Image loaded successfully." << std::endl;
 
         // Run the prediction
-        predict_rec.Predict(src);
-        // std::cout << "Prediction completed. Number of results: " << results.size() << std::endl;
+        std::string results = predict_rec.Predict(src);
+        std::cout << "Prediction completed. Result: " << results << std::endl;
+        std::cout << "Prediction completed. Number of results: " << results.size() << std::endl;
 
-        // // Process and display results
+        // // Process and display results   
         // for (size_t i = 0; i < results.size(); i++) {
         //     cv::Mat textimg = predict_det.get_rotate_crop_image(src, results[i]);
         //     cv::imshow("Text Image", textimg);
