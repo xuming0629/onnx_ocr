@@ -6,15 +6,15 @@
 int main() {
     try {
         // Initialize the PredictDetector object with the model path and device
-        PredictRecognizer predict_rec("../models/rec/rec.onnx", "auto", "../models/ppocr_keys_v1.txt");
+        PredictRecognizer predict_rec("../models/rec/rec.onnx", "auto", "../models/rec_char_dict.txt");
         std::cout << "PredictRecongize initialized." << std::endl;
 
         // Ensure the ONNX Runtime session is initialized
-        std::unique_ptr<Ort::Session>& session = predict_rec.GetSessionModel();
-        std::cout << "ONNX Runtime session initialized." << std::endl;
+        // std::unique_ptr<Ort::Session>& session = predict_rec.GetSessionModel();
+        // std::cout << "ONNX Runtime session initialized." << std::endl;
 
         // Load the image
-        cv::Mat src = cv::imread("textimg_6.jpg");
+        cv::Mat src = cv::imread("textimg_0.jpg");
         if (src.empty()) {
             std::cerr << "Could not load image..." << std::endl;
             return -1;
@@ -26,15 +26,6 @@ int main() {
         std::cout << "Prediction completed. Result: " << results << std::endl;
         std::cout << "Prediction completed. Number of results: " << results.size() << std::endl;
 
-        // // Process and display results   
-        // for (size_t i = 0; i < results.size(); i++) {
-        //     cv::Mat textimg = predict_det.get_rotate_crop_image(src, results[i]);
-        //     cv::imshow("Text Image", textimg);
-        //     cv::waitKey(0);
-        // }
-
-        // // Clean up OpenCV windows
-        // cv::destroyAllWindows();
 
     } catch (const std::exception& ex) {
         std::cerr << "An error occurred: " << ex.what() << std::endl;

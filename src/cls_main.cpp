@@ -1,12 +1,12 @@
 #include <iostream>
 #include <onnxruntime_cxx_api.h>
 #include <opencv2/opencv.hpp>
-#include "PredictClassify.h"
+#include "PredictClassifier.h"
 
 int main() {
     try {
         // Initialize the PredictDetector object with the model path and device
-        PredictClassify predict_cls("../models/cls/cls.onnx", "auto");
+        PredictClassifier predict_cls("../models/cls/cls.onnx", "auto");
         std::cout << "PredictRecongize initialized." << std::endl;
 
         // Ensure the ONNX Runtime session is initialized

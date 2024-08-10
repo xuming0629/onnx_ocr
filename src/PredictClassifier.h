@@ -8,10 +8,12 @@
 #include <array>
 #include <vector>
 
-class PredictClassify : public PredictBase {
+class PredictClassifier : public PredictBase {
 public:
-    PredictClassify(const std::string& model_path, const std::string& device) 
-        : PredictBase(model_path, device) {}
+    PredictClassifier(const std::string& model_path, const std::string& device) 
+        : PredictBase(model_path, device) {
+            session_model_ = std::move(GetSessionModel());
+        }
 
     std::unique_ptr<Ort::Session>& GetSessionModel() override {
         if (!session_model_) {
@@ -66,24 +68,33 @@ public:
     }
 
     cv::Mat Preprocess(const cv::Mat& image) {
-        if (image.empty()) {
-            std::cerr << "Error: Input image is empty." << std::endl;
-            return cv::Mat(); // Return an empty matrix if the input is invalid
-        }
+         cv::Mat dstimg;
+        int target_width = 320;  // 目标宽度
+        int target_height = 48;  // 目标高度
 
-        cv::Mat dst_img;
         int h = image.rows;
         int w = image.cols;
 
-        float ratio = w / static_cast<float>(h);
-        int resized_w = static_cast<int>(std::ceil(this->height_ * ratio));
+        // 计算缩放比例，保持宽高比
+        float scale = std::min(target_width / static_cast<float>(w), target_height / static_cast<float>(h));
 
-        if (resized_w > this->width_) {
-            resized_w = this->width_;
-        }
+        // 根据比例缩放图像
+        int resized_w = static_cast<int>(w * scale);
+        int resized_h = static_cast<int>(h * scale);
 
-        cv::resize(image, dst_img, cv::Size(resized_w, this->height_), 0, 0, cv::INTER_LINEAR);
-        return dst_img;
+        cv::resize(image, dstimg, cv::Size(resized_w, resized_h), cv::INTER_LINEAR);
+
+        // 创建一个目标尺寸的图像，用白色（或黑色）填充
+        cv::Mat output_img(target_height, target_width, dstimg.type(), cv::Scalar(255, 255, 255)); // 白色填充背景
+        // cv::Scalar(0, 0, 0) 用于黑色填充背景
+
+        // 将缩放后的图像放在中心
+        dstimg.copyTo(output_img(cv::Rect((target_width - resized_w) / 2, (target_height - resized_h) / 2, resized_w, resized_h)));
+
+        std::cout << "resized_w: " << resized_w << ", resized_h: " << resized_h << std::endl;
+        std::cout << "Output image size: " << output_img.size() << std::endl;
+
+        return output_img;
     }
 
     void Normalize(cv::Mat& img) {

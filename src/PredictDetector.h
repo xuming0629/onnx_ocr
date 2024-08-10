@@ -27,11 +27,14 @@ public:
           src_height_(0),
           src_width_(0),
           short_size_(640)  // 默认短边大小
-    {}
+    {
+        // 在构造函数主体中初始化 session_model_
+        session_model_ = std::move(GetSessionModel());
+    }
 
     ~PredictDetector() override = default;
 
-    // Make these methods public so they can be accessed outside of the class
+    // 公开的方法，可以从类外部访问
     std::unique_ptr<Ort::Session>& GetSessionModel() override {
         if (!session_model_) {
             session_model_ = std::make_unique<Ort::Session>(env, onnx_model.c_str(), session_options);
@@ -77,8 +80,7 @@ private:
     std::vector<std::vector<cv::Point2f>> Postprocess(std::vector<Ort::Value>& outputs);
 
     float contourScore(const cv::Mat& binary, const std::vector<cv::Point>& contour);
-    void unclip(const std::vector<cv::Point2f>& inPoly, std::vector<cv::Point2f> &outPoly);
-    
+    void unclip(const std::vector<cv::Point2f>& inPoly, std::vector<cv::Point2f>& outPoly);
 
 private:
     float db_thresh_;
@@ -90,7 +92,8 @@ private:
     int src_width_;
 
     Ort::AllocatorWithDefaultOptions allocator_;
-    std::unique_ptr<Ort::Session> session_model_;
+    std::unique_ptr<Ort::Session> session_model_;  // 在构造函数主体中初始化
+
     int short_size_;
     std::vector<float> input_image_;
     cv::Mat dstimg_;
