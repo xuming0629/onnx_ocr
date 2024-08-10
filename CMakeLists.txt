@@ -32,7 +32,8 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 # 添加可执行文件
 add_executable(inspurocr 
     # src/det_main.cpp 
-    src/rec_main.cpp
+    src/cls_main.cpp
+    #src/rec_main.cpp
     src/PredictBase.h 
     src/PredictDetector.h
     src/PredictDetector.cpp
