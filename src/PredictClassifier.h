@@ -1,3 +1,12 @@
+/*
+* @FileName      : PredictClassifier.h
+* @Time          : 2024-08-03 10:00:00
+* @Author        : XuMing
+* @Email         : 920972751@qq.com
+* @description   : Classifier text regions in images using ONNX Runtime.
+*/
+
+
 #ifndef PREDICTCLASSIFY_H
 #define PREDICTCLASSIFY_H
 
